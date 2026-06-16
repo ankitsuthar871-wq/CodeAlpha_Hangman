@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game — Interactive Word Guessing</title>
+    <meta name="description" content="A premium interactive Hangman word guessing game built with Python Flask backend and Three.js 3D animated frontend.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 3D Animated Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Confetti Canvas (Win celebration) -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Full-Page Game Layout -->
+    <div id="app">
+
+        <!-- Top Bar -->
+        <header id="topbar">
+            <div class="topbar-left">
+                <div class="brand">
+                    <span class="brand-icon"><i class="fa-solid fa-gamepad"></i></span>
+                    <span class="brand-text">Hangman <span class="accent">Game</span></span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="stats-pill" id="stats-pill">
+                    <span class="stat"><i class="fa-solid fa-heart"></i> <span id="lives-display">6</span></span>
+                    <span class="stat-divider"></span>
+                    <span class="stat"><i class="fa-solid fa-trophy"></i> <span id="score-display">0</span></span>
+                </div>
+                <button class="icon-btn" id="sound-toggle" title="Toggle Sound">
+                    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+                </button>
+                <button class="icon-btn" id="new-game-btn" title="New Game">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main id="game-area">
+
+            <!-- Left Panel: Hangman SVG Figure -->
+            <section class="panel hangman-panel">
+                <div class="hangman-stage">
+                    <svg id="hangman-svg" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Gallows -->
+                        <line class="gallows" x1="20" y1="210" x2="80" y2="210" stroke-linecap="round"/>
+                        <line class="gallows" x1="50" y1="210" x2="50" y2="30" stroke-linecap="round"/>
+                        <line class="gallows" x1="50" y1="30" x2="130" y2="30" stroke-linecap="round"/>
+                        <line class="gallows" x1="130" y1="30" x2="130" y2="50" stroke-linecap="round"/>
+                        <!-- Brace -->
+                        <line class="gallows brace" x1="70" y1="30" x2="50" y2="60" stroke-linecap="round"/>
+                        <!-- Body Parts (hidden initially) -->
+                        <circle id="hm-head" class="body-part" cx="130" cy="65" r="15"/>
+                        <line id="hm-body" class="body-part" x1="130" y1="80" x2="130" y2="130"/>
+                        <line id="hm-larm" class="body-part" x1="130" y1="95" x2="105" y2="120"/>
+                        <line id="hm-rarm" class="body-part" x1="130" y1="95" x2="155" y2="120"/>
+                        <line id="hm-lleg" class="body-part" x1="130" y1="130" x2="110" y2="165"/>
+                        <line id="hm-rleg" class="body-part" x1="130" y1="130" x2="150" y2="165"/>
+                        <!-- Face expressions (shown on lose) -->
+                        <g id="hm-face-dead" class="face-dead">
+                            <line x1="123" y1="60" x2="127" y2="64"/>
+                            <line x1="127" y1="60" x2="123" y2="64"/>
+                            <line x1="133" y1="60" x2="137" y2="64"/>
+                            <line x1="137" y1="60" x2="133" y2="64"/>
+                            <path d="M122 73 Q130 68 138 73" fill="none"/>
+                        </g>
+                        <g id="hm-face-alive" class="face-alive">
+                            <circle cx="125" cy="62" r="2"/>
+                            <circle cx="135" cy="62" r="2"/>
+                            <path d="M122 70 Q130 77 138 70" fill="none"/>
+                        </g>
+                    </svg>
+                </div>
+                <!-- Category Dropdown -->
+                <div class="dropdown-wrapper">
+                    <button class="dropdown-trigger" id="category-trigger">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span id="category-label">Programming</span>
+                        <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="dropdown-menu" id="category-menu">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Word + Keyboard -->
+            <section class="panel play-panel">
+
+                <!-- Hint -->
+                <div class="hint-box" id="hint-box">
+                    <div class="hint-icon"><i class="fa-solid fa-lightbulb"></i></div>
+                    <p id="hint-text">Select a category and start guessing!</p>
+                </div>
+
+                <!-- Word Display -->
+                <div class="word-track" id="word-track">
+                    <!-- Letter tiles injected here -->
+                </div>
+
+                <!-- Wrong Letters -->
+                <div class="wrong-letters-row" id="wrong-row">
+                    <span class="wrong-label">Wrong:</span>
+                    <div id="wrong-letters" class="wrong-letters"></div>
+                </div>
+
+                <!-- On-Screen Keyboard -->
+                <div class="keyboard" id="keyboard">
+                    <!-- 26 keys injected by JS -->
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-emoji" id="modal-emoji">🎉</div>
+            <h2 id="modal-heading">Congratulations! You Win!</h2>
+            <p class="modal-sub" id="modal-sub">The word was</p>
+            <div class="modal-word" id="modal-word">PYTHON</div>
+            <button class="btn-primary modal-btn" id="modal-play-again">
+                <i class="fa-solid fa-rotate-right"></i> Play Again
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="{{ url_for('static', filename='js/renderer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
